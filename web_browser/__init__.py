@@ -1,0 +1,4 @@
+"""cubicweb-capsul application package
+
+
+"""
