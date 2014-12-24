@@ -17,6 +17,9 @@ from cubicweb.web import component
 # WEB BROWSER import
 from utils import load_forms
 
+# RQL UPLOAD import
+from cubes.rql_upload.views.components import CWUploadBox
+
 
 ###############################################################################
 # Navigation Box 
@@ -38,7 +41,8 @@ class WebBrowserBox(component.CtxComponent):
         tree_menu = load_forms(self._cw.vreg.config)
 
         # Build redirection url
-        url = self._cw.build_url(vid="web-service-task")
+        url = self._cw.build_url("view", vid="upload-view",
+                                 title=self._cw._("Register new task"))
 
         # Code to initialize the tree when the document is loaded
         tree_script = u"""
@@ -46,8 +50,10 @@ class WebBrowserBox(component.CtxComponent):
             $(function(){{
                 $("#tree").dynatree({{
                     onActivate: function(node) {{
-                        document.location.href = "{0}&method=" + node.data.title +
-                                                 "&module=" + node.data.module;
+                        document.location.href = 
+                            "{0}&method=" + node.data.title +
+                            "&module=" + node.data.module +
+                            "&form_name=" + node.data.module + "." + node.data.title;
                     }},
                     title: "Web Browser",
                     clickFolderMode: 2,
@@ -64,3 +70,9 @@ class WebBrowserBox(component.CtxComponent):
         # Add a <div> element where the tree should appear
         w(u"<div id='tree'> </div>")
 
+
+def registration_callback(vreg):
+    """ Register the tuned components.
+    """
+    vreg.register(WebBrowserBox)
+    vreg.unregister(CWUploadBox)
