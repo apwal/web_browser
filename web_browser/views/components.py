@@ -35,7 +35,7 @@ class WebBrowserBox(component.CtxComponent):
     order = 0
 
     def render_body(self, w):
-        """ Create the diifferent item of the navigation box
+        """ Create the different item of the navigation box
         """
         # Get the tree menu from the configuration file
         tree_menu = load_forms(self._cw.vreg.config)
@@ -71,8 +71,30 @@ class WebBrowserBox(component.CtxComponent):
         w(u"<div id='tree'> </div>")
 
 
+class TaskManagerBox(component.CtxComponent):
+    """ Display a box containing task shortcuts.
+    """
+    __regid__ = "ctx-task-manager"
+    __select__ = (component.CtxComponent.__select__ & ~anonymous_user())
+    context = "left"
+    title = _("Task manager")
+    order = 1
+
+    def render_body(self, w):
+        """ Create a navigation box to keep trace of each tasks.
+        """
+        href = self._cw.build_url(
+            "view", vid="task-manager", title=self._cw._("Task manager"))
+        w(u'<div class="btn-toolbar">')
+        w(u'<div class="btn-group-vertical btn-block">')
+        w(u'<a class="btn btn-primary" href="{0}">'.format(href))
+        w(u'{0}</a>'.format(self._cw._("Task manager")))
+        w(u'</div></div><br/>')
+
+
 def registration_callback(vreg):
     """ Register the tuned components.
     """
     vreg.register(WebBrowserBox)
+    vreg.register(TaskManagerBox)
     vreg.unregister(CWUploadBox)
