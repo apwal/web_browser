@@ -10,6 +10,7 @@
 
 STYLESHEETS += [
     data('jquery.dynatree-1.2.6/dist/skin/ui.dynatree.css'),
+    data('bootstrap/css/bootstrap.min.css')
 ]
 
 JAVASCRIPTS += [
@@ -17,4 +18,6 @@ JAVASCRIPTS += [
     data('jquery.dynatree-1.2.6/jquery/jquery-ui.custom.js'),
     data('jquery.dynatree-1.2.6/jquery/jquery.cookie.js'),
     data('jquery.dynatree-1.2.6/dist/jquery.dynatree.js'),
+    data('bootstrap/js/bootstrap.min.js')
 ]
+

@@ -15,6 +15,7 @@ web = 'http://www.cubicweb.org/project/%s' % distname
 
 __depends__ =  {
     'cubicweb': '>= 3.19.0',
+    #'cubicweb-bootstrap': '>= 0.6.0',
     'cubicweb-rql_download': '>= 0.1.0',
     'cubicweb-rql_upload': '>= 0.1.0',
 }

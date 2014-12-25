@@ -19,14 +19,6 @@ class EntityCWUpload(AnyEntity):
     """
     __regid__ = "CWUpload"
 
-    def has_been_processed(self):
-        """ Tell us if the registered task has been processed by the server.
-        """
-        if len(self.is_processed) > 0:
-            return True
-        else:
-            return False
-
     def dc_title(self):
         """ Method the defined the upload file entity title.
         """
@@ -35,7 +27,13 @@ class EntityCWUpload(AnyEntity):
     def icon_url(self):
         """ Method to get an icon for this entity.
         """
-        #return self._cw.data_url(os.path.join("icons", "error.ico"))
-        #return self._cw.data_url(os.path.join("icons", "success.ico"))
-        return self._cw.data_url(os.path.join("icons", "scheduled.ico"))
+        print self.related_processing[0].status
+        if self.related_processing[0].status == "error":
+            return self._cw.data_url(os.path.join("icons", "error.ico"))
+        elif self.related_processing[0].status == "success":
+            return self._cw.data_url(os.path.join("icons", "success.ico"))
+        elif self.related_processing[0].status == "running":
+            return self._cw.data_url(os.path.join("icons", "running.ico"))     
+        else:
+            return self._cw.data_url(os.path.join("icons", "scheduled.ico"))
 
