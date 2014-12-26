@@ -27,7 +27,6 @@ class EntityCWUpload(AnyEntity):
     def icon_url(self):
         """ Method to get an icon for this entity.
         """
-        print self.related_processing[0].status
         if self.related_processing[0].status == "error":
             return self._cw.data_url(os.path.join("icons", "error.ico"))
         elif self.related_processing[0].status == "success":

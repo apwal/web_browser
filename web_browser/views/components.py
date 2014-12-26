@@ -38,7 +38,7 @@ class WebBrowserBox(component.CtxComponent):
         """ Create the different item of the navigation box
         """
         # Get the tree menu from the configuration file
-        tree_menu = load_forms(self._cw.vreg.config)
+        tree_menu = load_forms(self._cw.vreg.config, "menu_json")
 
         # Build redirection url
         url = self._cw.build_url("view", vid="upload-view",
@@ -83,13 +83,13 @@ class TaskManagerBox(component.CtxComponent):
     def render_body(self, w):
         """ Create a navigation box to keep trace of each tasks.
         """
+        w(u"<div class='btn-toolbar'>")
+        w(u"<div class='btn-group-vertical btn-block'>")
         href = self._cw.build_url(
-            "view", vid="task-manager", title=self._cw._("Task manager"))
-        w(u'<div class="btn-toolbar">')
-        w(u'<div class="btn-group-vertical btn-block">')
-        w(u'<a class="btn btn-primary" href="{0}">'.format(href))
-        w(u'{0}</a>'.format(self._cw._("Task manager")))
-        w(u'</div></div><br/>')
+            rql="Any X ORDERBY D DESC Where X is CWUpload, X creation_date D")
+        w(u"<a class='btn btn-primary' href='{0}'>".format(href))
+        w(u"Task manager</a>")
+        w(u"</div></div><br/>")
 
 
 def registration_callback(vreg):

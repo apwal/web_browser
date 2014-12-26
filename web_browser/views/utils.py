@@ -14,7 +14,7 @@ import os
 from cubicweb import ValidationError
 
 
-def load_forms(cw_config):
+def load_forms(cw_config, form_name):
     """ Function to load the forms structures from the file defined in the
     'menu_json' cubicweb instance parameter.
 
@@ -23,13 +23,16 @@ def load_forms(cw_config):
     cw_config: dict
         the cubicweb configuration built from the instance 'all-in-one.conf'
         file.
+    form_name: str
+        the name of the registered form to be loaded.
+
     Returns
     -------
     config: dict
         the forms descriptions defined in the 'menu_json' setting
         file.
     """
-    config_file = cw_config["menu_json"]
+    config_file = cw_config[form_name]
     if not os.path.isfile(config_file):
         raise ValidationError(
             "CWUpload", {
@@ -37,9 +40,27 @@ def load_forms(cw_config):
                     "cannot find the 'menu_json' "
                      "configuration file at location "
                     "'{0}'".format(config_file))})
-    with open(config_file) as open_json:
-        config = json.load(open_json)
+    config = load_json(config_file)
     return byteify(config)
+
+
+def load_json(json_file):
+    """ Load a json file.
+
+    Parameters
+    ----------
+    json_file: str
+        the .json file to load.
+
+    Returns
+    -------
+    struct: object
+        the forms descriptions defined in the 'menu_json' setting
+        file.
+    """
+    with open(json_file) as open_json:
+        struct = json.load(open_json)
+    return struct    
 
 
 def byteify(struct):

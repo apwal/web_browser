@@ -10,11 +10,17 @@
 # System import
 import datetime
 import subprocess
+import json
+from operator import itemgetter
 
 # CW import
 from cubicweb import Binary, ValidationError
 from cubicweb.server import hook
 from cubicweb.predicates import is_instance
+
+# WEB BROWSER import
+from cubes.web_browser.views.utils import load_forms
+from cubes.rql_download.fuse.fuse_mount import get_cw_option
 
 
 ###############################################################################
@@ -44,6 +50,15 @@ class CWAddTask(hook.Hook):
             self._cw.add_relation(
                 self.entity.eid, "related_processing", processing_eid)
 
+            # Create an entity to store the task result
+            result_eid = self._cw.create_entity(
+                "UploadForm", data=Binary(json.dumps({})),
+                data_format=u"text/json", data_name=u"result.json",
+                uploaded_by=self._cw.user.eid).eid
+
+            # Link the processing with the final results
+            self._cw.add_relation(processing_eid, "result_form", result_eid)
+
 
 ###############################################################################
 # Task Manager Startup
@@ -62,6 +77,11 @@ class ServerStartupHook(hook.Hook):
         def process_tasks(repo):
             """ Delete all CWSearch entities that have expired.
             """
+            # Local import
+            import json
+            import subprocess
+
+            # Get the internal session
             with repo.internal_session() as cnx:
 
                 # Get the number of tasks running and kill zombies after updating
@@ -71,8 +91,26 @@ class ServerStartupHook(hook.Hook):
                     for entity, process in globals()["web_browser_running_tasks"]:
                         if process.poll() is not None:
 
-                            # Update the task status
+                            # Store the process result
+                            stdout, stderr = process.communicate()
+                            result_struct = {
+                                "returncode": process.returncode,
+                                "stderr": stderr or "None",
+                                "stdout": stdout or "None"
+                            }
+
+                            # Get the task related processing and result
                             processing = entity.related_processing[0]
+                            result_eid = cnx.execute(
+                                "Any X Where X is UploadForm, Y result_form X, "
+                                "Y eid '{0}'".format(processing.eid))[0][0]
+
+                            # Update the result entity
+                            cnx.execute(
+                                "SET X description '{0}' WHERE X eid '{1}'".format(
+                                    repr(result_struct).replace("'",""), result_eid))
+
+                            # Update the task status
                             if process.poll() == 0:
                                 cnx.execute(
                                     "SET X status 'success' WHERE X eid '{0}'".format(
@@ -99,8 +137,10 @@ class ServerStartupHook(hook.Hook):
                     if nb_of_running_tasks < self.max_nb_of_tasks:
 
                         # Create the command associated to the submitted task
-                        cmd = ["sleep", "1"]
-                        process = subprocess.Popen(cmd)
+                        task_parameters = json.load(entity.result_form[0].data)
+                        cmd = self.get_commandline(task_parameters)
+                        process = subprocess.Popen(
+                            cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
                         # Update the task status
                         processing = entity.related_processing[0]
@@ -132,3 +172,39 @@ class ServerStartupHook(hook.Hook):
 
         # Call the clean function manually on the startup
         process_tasks(self.repo)
+
+    def get_commandline(self, parameters):
+        """ Method to generate a comandline representation of the task.
+        """
+        # Get command line arguments
+        parameters.pop("upload_title")
+        module_name = parameters.pop("module")
+        method_name = parameters.pop("method")
+
+        # Split args and kwargs
+        config = {"upload_structure_json": get_cw_option(
+            self.repo.schema.name, "upload_structure_json")}
+        form = load_forms(config, "upload_structure_json")
+        parameters_description = form["{0}.{1}".format(module_name, method_name)]
+        args_parameters = dict((item["name"], item["order"])
+                               for item in parameters_description
+                               if "order" in item)
+        args_parameters = sorted(args_parameters.items(), key=itemgetter(1))
+        args_parameters = [item[0] for item in args_parameters]
+        kwargs = {}
+        for name, value in parameters.iteritems():
+            if name in args_parameters:
+                args_parameters[args_parameters.index(name)] = int(value)
+            else:
+                kwargs[name] = value            
+
+        # Construct the command line
+        commandline = [
+            "python",
+            "-c",
+            ("from {0} import {1};"
+             "{1}(*{2}, **{3})").format(
+                module_name, method_name, repr(args_parameters), repr(kwargs))
+        ]
+
+        return commandline

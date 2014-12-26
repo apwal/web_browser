@@ -7,6 +7,9 @@
 # for details.
 ##########################################################################
 
+# System import
+import json
+
 # CW import
 from cubicweb.predicates import is_instance
 from cubicweb.view import EntityView
@@ -59,8 +62,11 @@ class CWUploadOutOfContextView(EntityView):
         # clicked
         self.w(u"<div id='info-{0}' class='collapse'>".format(row))
         self.w(u"<dl class='dl-horizontal'>")
-        # > The submitted form values
-        self.w(u"<dt>Module</dt><dd>{0}</dd>".format("todo"))
+        # > add the submitted form values
+        task_parameters = json.load(entity.result_form[0].data)
+        for key, value in task_parameters.iteritems():
+            if key != "upload_title":
+                self.w(u"<dt>{0}</dt><dd>{1}</dd>".format(key, value))
         self.w(u"</div>")
 
         # Close list item

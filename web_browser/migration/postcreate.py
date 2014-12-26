@@ -21,6 +21,6 @@ the cube is added to an existing instance.
 You could setup site properties or a workflow here for example.
 """
 
-# Example of site property change
-#set_property('ui.site-title', "<sitename>")
+# Change the site name
+set_property("ui.site-title", "WebBrowser")
 
