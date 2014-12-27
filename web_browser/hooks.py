@@ -8,6 +8,7 @@
 ##########################################################################
 
 # System import
+import sys
 import datetime
 import subprocess
 import json
@@ -90,8 +91,9 @@ class ServerStartupHook(hook.Hook):
                 # Get the number of tasks running and kill zombies after updating
                 # the corresponding CWProcessing entity
                 nb_of_running_tasks = 0
-                if globals() is not None and "web_browser_running_tasks" in globals():
-                    for entity, process in globals()["web_browser_running_tasks"]:
+                _globals = globals()
+                if _globals is not None and "web_browser_running_tasks" in _globals:
+                    for entity, process in _globals["web_browser_running_tasks"]:
                         if process.poll() is not None:
 
                             # Store the process result
@@ -182,7 +184,7 @@ class ServerStartupHook(hook.Hook):
         # Get command line arguments
         parameters.pop("upload_title")
         module_name = parameters.pop("module")
-        method_name = parameters.pop("method")
+        function_name = parameters.pop("method")
 
         # Split args and kwargs
         config = {"upload_structure_json": get_cw_option(
@@ -190,7 +192,7 @@ class ServerStartupHook(hook.Hook):
         form = load_forms(config, "upload_structure_json")
 
         # Get the form parameters
-        parameters_description = form["{0}.{1}".format(module_name, method_name)]
+        parameters_description = form["{0}.{1}".format(module_name, function_name)]
         type_parameters = dict((item["name"], item["type"])
                                for item in parameters_description)
 
@@ -208,16 +210,16 @@ class ServerStartupHook(hook.Hook):
             if name in args_parameters:
                 args_parameters[args_parameters.index(name)] = converter(value)
             else:
-                kwargs[name] = converter(value)          
+                kwargs[name] = converter(value)
+
+        # Get the outputs
+        # ToDo: dynamic from task form
+        outputs = ["res"]         
 
         # Construct the command line
-        commandline = [
-            "python",
-            "-c",
-            ("from {0} import {1};"
-             "output = {1}(*{2}, **{3});"
-             "print 'output=%s' % output").format(
-                module_name, method_name, repr(args_parameters), repr(kwargs))
-        ]
+        commandline = [sys.executable, "-m", "cubes.web_browser.task_luncher",
+                "-i", self.repo.schema.name, "-m", module_name, "-f", function_name,
+               "-a", repr(args_parameters), "-k", repr(kwargs), "-o",
+               repr(outputs)]
 
         return commandline
