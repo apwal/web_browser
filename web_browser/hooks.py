@@ -20,6 +20,9 @@ from cubicweb.predicates import is_instance
 
 # WEB BROWSER import
 from cubes.web_browser.views.utils import load_forms
+from cubes.web_browser.views.formfields import CONVERSION_TYPES
+
+# RQL DOWNLOAD import
 from cubes.rql_download.fuse.fuse_mount import get_cw_option
 
 
@@ -87,7 +90,7 @@ class ServerStartupHook(hook.Hook):
                 # Get the number of tasks running and kill zombies after updating
                 # the corresponding CWProcessing entity
                 nb_of_running_tasks = 0
-                if "web_browser_running_tasks" in globals():
+                if globals() is not None and "web_browser_running_tasks" in globals():
                     for entity, process in globals()["web_browser_running_tasks"]:
                         if process.poll() is not None:
 
@@ -185,25 +188,35 @@ class ServerStartupHook(hook.Hook):
         config = {"upload_structure_json": get_cw_option(
             self.repo.schema.name, "upload_structure_json")}
         form = load_forms(config, "upload_structure_json")
+
+        # Get the form parameters
         parameters_description = form["{0}.{1}".format(module_name, method_name)]
+        type_parameters = dict((item["name"], item["type"])
+                               for item in parameters_description)
+
+        # Get the args parameters from the form
         args_parameters = dict((item["name"], item["order"])
                                for item in parameters_description
                                if "order" in item)
         args_parameters = sorted(args_parameters.items(), key=itemgetter(1))
         args_parameters = [item[0] for item in args_parameters]
+
+        # Get the args and kwargs values
         kwargs = {}
         for name, value in parameters.iteritems():
+            converter = CONVERSION_TYPES[type_parameters[name]]
             if name in args_parameters:
-                args_parameters[args_parameters.index(name)] = int(value)
+                args_parameters[args_parameters.index(name)] = converter(value)
             else:
-                kwargs[name] = value            
+                kwargs[name] = converter(value)          
 
         # Construct the command line
         commandline = [
             "python",
             "-c",
             ("from {0} import {1};"
-             "{1}(*{2}, **{3})").format(
+             "output = {1}(*{2}, **{3});"
+             "print 'output=%s' % output").format(
                 module_name, method_name, repr(args_parameters), repr(kwargs))
         ]
 

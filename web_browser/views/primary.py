@@ -41,18 +41,19 @@ class ResultFormPrimaryView(PrimaryView):
         else:
             # Get the data from the description field
             json_data = {}
-            for splitter in ["returncode: ", "stdout: ", "stderr: "]:
-                json_data[splitter[:-2]] = entity.description[1: -1].split(
-                    splitter)[1]
-            for key, value in json_data.iteritems():
+            if entity.description is not None and len(entity.description) > 2:
                 for splitter in ["returncode: ", "stdout: ", "stderr: "]:
-                    value = value.split(splitter)[0]
-                json_data[key] = value
+                    json_data[splitter[:-2]] = entity.description[1: -1].split(
+                        splitter)[1]
+                for key, value in json_data.iteritems():
+                    for splitter in ["returncode: ", "stdout: ", "stderr: "]:
+                        value = value.split(splitter)[0]
+                    json_data[key] = value
 
         # Display a title
         self.w(u'<div class="page-header">')
         self.w(u'<h2>{0}</h2>'.format(xml_escape(entity.dc_title())))
-        self.w(u'</div><hr>')
+        self.w(u'</div>')
 
         self.w(u'<table class="upload-table">')
 
@@ -62,8 +63,7 @@ class ResultFormPrimaryView(PrimaryView):
                    self._cw._(label), attribute))
 
         # Link to the upload entity
-        self.w(u'<tr><td><b>{0}</b></td><td>{1}</td></tr>'.format(
-               self._cw._("Related upload"), src_entity.view("outofcontext")))
+        self.w(u'<tr><td>{0}</td></tr>'.format(src_entity.view("outofcontext")))
 
         self.w(u'</table>')
 
