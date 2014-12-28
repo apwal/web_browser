@@ -13,6 +13,8 @@ import json
 # CW import
 from cubicweb.predicates import nonempty_rset, anonymous_user
 from cubicweb.web import component
+from cubicweb.web.views.boxes import EditBox
+from cubicweb.selectors import is_instance, one_line_rset
 
 # WEB BROWSER import
 from utils import load_forms
@@ -88,13 +90,37 @@ class TaskManagerBox(component.CtxComponent):
         href = self._cw.build_url(
             rql="Any X ORDERBY D DESC Where X is CWUpload, X creation_date D")
         w(u"<a class='btn btn-primary' href='{0}'>".format(href))
-        w(u"Task manager</a>")
+        w(u"{0}</a>".format(self.title))
+        w(u"</div></div><br/>")
+
+
+class SaveTaskResultBox(component.CtxComponent):
+    """ Display a box containing a download shortcut.
+    """
+    __regid__ = "ctx-save-task-result"
+    __select__ = (component.CtxComponent.__select__ & is_instance("CWUpload") &
+                  one_line_rset())
+    context = "left"
+    title = _("Download result")
+    order = 2
+
+    def render_body(self, w):
+        """ Create a navigation box to dowload the results.
+        """
+        w(u"<div class='btn-toolbar'>")
+        w(u"<div class='btn-group-vertical btn-block'>")
+        href = self._cw.build_url(
+            "add/CWSearch", path=self.cw_rset.printable_rql())
+        w(u"<a class='btn btn-primary' href='{0}'>".format(href))
+        w(u"{0}</a>".format(self.title))
         w(u"</div></div><br/>")
 
 
 def registration_callback(vreg):
     """ Register the tuned components.
     """
+    vreg.register(SaveTaskResultBox)
     vreg.register(WebBrowserBox)
     vreg.register(TaskManagerBox)
     vreg.unregister(CWUploadBox)
+    vreg.unregister(EditBox)
