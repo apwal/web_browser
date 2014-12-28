@@ -141,14 +141,18 @@ class ServerStartupHook(hook.Hook):
                 for entity in rset.entities():
                     if nb_of_running_tasks < self.max_nb_of_tasks:
 
+                        # Get the associated processing
+                        processing = entity.related_processing[0]
+                        user_eid = processing.uploaded_by[0].eid
+
                         # Create the command associated to the submitted task
                         task_parameters = json.load(entity.result_form[0].data)
-                        cmd = self.get_commandline(task_parameters)
+                        cmd = self.get_commandline(
+                            task_parameters, processing.eid, user_eid)
                         process = subprocess.Popen(
                             cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
                         # Update the task status
-                        processing = entity.related_processing[0]
                         cnx.execute(
                             "SET X status 'running' WHERE X eid '{0}'".format(
                                 processing.eid))
@@ -178,7 +182,7 @@ class ServerStartupHook(hook.Hook):
         # Call the clean function manually on the startup
         process_tasks(self.repo)
 
-    def get_commandline(self, parameters):
+    def get_commandline(self, parameters, processing_eid, user_eid):
         """ Method to generate a comandline representation of the task.
         """
         # Get command line arguments
@@ -203,23 +207,23 @@ class ServerStartupHook(hook.Hook):
         args_parameters = sorted(args_parameters.items(), key=itemgetter(1))
         args_parameters = [item[0] for item in args_parameters]
 
-        # Get the args and kwargs values
+        # Get the args, kwargs and outputs values
         kwargs = {}
+        outputs = {}
         for name, value in parameters.iteritems():
             converter = CONVERSION_TYPES[type_parameters[name]]
             if name in args_parameters:
                 args_parameters[args_parameters.index(name)] = converter(value)
+            elif name == "outputs":
+                outputs = eval(value)
             else:
                 kwargs[name] = converter(value)
-
-        # Get the outputs
-        # ToDo: dynamic from task form
-        outputs = ["res"]         
+        print outputs
 
         # Construct the command line
-        commandline = [sys.executable, "-m", "cubes.web_browser.task_luncher",
+        commandline = [sys.executable, "-m", "cubes.web_browser.task_launcher",
                 "-i", self.repo.schema.name, "-m", module_name, "-f", function_name,
                "-a", repr(args_parameters), "-k", repr(kwargs), "-o",
-               repr(outputs)]
+               repr(outputs), "-e", repr(processing_eid), "-u", repr(user_eid)]
 
         return commandline

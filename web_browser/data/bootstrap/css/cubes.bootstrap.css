@@ -1,0 +1,25 @@
+#headtext {
+    background-color: #3366FF;
+    color: white;
+}
+#header-center {
+    background-color: #3366FF;
+} 
+#header-right {
+    background-color: #3366FF;
+}
+#header-left {
+    background-color: #3366FF;
+} 
+#header {
+    background-color: #3366FF;
+}
+
+
+.btn-primary:hover {
+    color: black;
+}
+
+#contentColumn {
+    color: black;
+}

@@ -8,7 +8,7 @@
 ##########################################################################
 
 """ Exemple:
-> python task_luncher.py -i test -m numpy -f exp -a [0.] -k {} -o [\'res\']
+> python task_launcher.py -i test -m numpy -f exp -a [0.] -k {} -o "[('res', False)]" -e 995 -u 6
 """
 
 # System import
@@ -49,7 +49,7 @@ def load_function(module_name, function_name):
         __import__(module_name)
     except ImportError, e :
         logging.error("Could not import {0}: {1}".format(module_name, e))
-        return None
+        raise Exception("Could not import {0}: {1}".format(module_name, e))
     module = sys.modules[module_name]
 
     # Get the function
@@ -69,7 +69,7 @@ def build_expression(module_name, function_name, args, kwargs, outputs):
         the ordered function arguments.
     kwargs: dict
         the function arguments.
-    outputs: list
+    outputs: dict
         the ordered name of the outputs.
 
     Returns
@@ -82,9 +82,12 @@ def build_expression(module_name, function_name, args, kwargs, outputs):
     # Get the callable function
     function = load_function(module_name, function_name)
 
+    # Get output parameter names$
+    output_names = [item[0] for item in outputs]
+
     # Build the expression namespace
     namespace = {"function" : function}
-    for parameter_name in outputs:
+    for parameter_name in output_names:
         namespace[parameter_name] = None
     for parameter_name, parameter_value in kwargs.iteritems():
         namespace[parameter_name] = parameter_value
@@ -95,15 +98,15 @@ def build_expression(module_name, function_name, args, kwargs, outputs):
     for parameter_name, parameter_value in kwargs.iteritems():
         fargs.append("{0} = {0}".format(parameter_name))
     expression = "function({0})".format(", ".join(fargs))
-    if outputs: 
-        output_expression = ", ".join(outputs)
+    if output_names: 
+        output_expression = ", ".join(output_names)
         expression = "{0} = {1}".format(output_expression, expression)
     logger.debug("Expression = {0}".format(expression))
 
     return namespace, expression
 
 
-def set_outputs_in_db(namespace, outputs, instance_name):
+def set_outputs_in_db(namespace, outputs, instance_name, eid, uid):
     """ Save the outputs in a cw database.
 
     Parameters
@@ -114,19 +117,41 @@ def set_outputs_in_db(namespace, outputs, instance_name):
         the ordered name of the outputs.
     instance_name: str
         the name of the cubicweb instance.
+    eid: int
+        the entity eid.
+    eid: int
+        the user uid.
     """
-    # Create the result dict
-    result_dict = dict((parameter_name, namespace[parameter_name])
-                       for parameter_name in outputs)
-    logger.debug("Outputs = {0}".format(result_dict))
-
     # Get a Cubicweb in memory connection
     cw_connection = get_cw_connection(instance_name)
 
     # Get the cw session to execute rql requests
     cw_session = cw_connection.session
 
+    # Store the results in the db
+    for parameter_name, is_file in outputs:
+
+        # Get the parameter value
+        print parameter_name, is_file
+        parameter_value = namespace[parameter_name]
+        logger.debug("Output: {0} = {1} ({2})".format(
+            parameter_name, parameter_value, is_file))
+
+        # Insert in db
+        if is_file:
+            rql = ("INSERT ExternalResource X: X name '{0}', X filepath '{1}', "
+                   "X uploaded_by U, Y results  X WHERE U eid '{2}', Y eid "
+                   "'{3}'".format(parameter_name, parameter_value, uid, eid))
+        else:
+            rql = ("INSERT ScoreValue X: X name '{0}', X value '{1}', "
+                   "X uploaded_by U, Y results  X WHERE U eid '{2}', Y eid "
+                   "'{3}'".format(parameter_name, parameter_value, uid, eid))
+        print rql
+        logger.debug("RQL: {0}".format(rql))
+        cw_session.execute(rql)
+
     # Shut down the cw connection
+    cw_session.commit()
     cw_connection.shutdown()
 
 
@@ -146,6 +171,10 @@ if __name__ == "__main__":
                       help="the function arguments: 'name1=value1,...'")
     parser.add_option("-o", "--outputs", dest="outputs",
                       help="the function outputs. 'name1,...'")
+    parser.add_option("-e", "--eid", dest="eid",
+                      help="the entity eid.'")
+    parser.add_option("-u", "--uid", dest="uid",
+                      help="the user uid.'")
     (options, args) = parser.parse_args()
 
     # Setup the logger: cubicweb change the logging config and thus
@@ -171,6 +200,8 @@ if __name__ == "__main__":
     f()
 
     # Save the outputs in a cw entity
-    set_outputs_in_db(namespace, eval(options.outputs), options.instance_name)
+    set_outputs_in_db(
+        namespace, eval(options.outputs), options.instance_name,
+        int(options.eid), int(options.uid))
 
 

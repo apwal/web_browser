@@ -36,3 +36,36 @@ class EntityCWUpload(AnyEntity):
         else:
             return self._cw.data_url(os.path.join("icons", "scheduled.ico"))
 
+
+class EntityScoreValue(AnyEntity):
+    """ Define the 'ScoreValue' entity associated functions.
+    """
+    __regid__ = "ScoreValue"
+
+    def dc_title(self):
+        """ Method the defined the upload file entity title.
+        """
+        return self.name
+
+    def icon_url(self):
+        """ Method to get an icon for this entity.
+        """
+        return self._cw.data_url(os.path.join("icons", "score.ico"))
+
+
+class EntityExternalResource(AnyEntity):
+    """ Define the 'ExternalResource' entity associated functions.
+    """
+    __regid__ = "ExternalResource"
+
+    def dc_title(self):
+        """ Method the defined the upload file entity title.
+        """
+        return self.name
+
+    def icon_url(self):
+        """ Method to get an icon for this entity.
+        """
+        return self._cw.data_url(os.path.join("icons", "upload.ico"))
+
+

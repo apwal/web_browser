@@ -50,6 +50,70 @@ class CWProcessing(EntityType):
         "CWUser", cardinality="1*", composite="subject")
 
 
+class ScoreValue(EntityType):
+    """ An entity used to to store a parameter value.
+
+    Attributes
+    ----------
+    name: String (mandatory)
+        the parameter name.
+    value: String (mandatory)
+        the parameter value.
+    uploaded_by: SubjectRelation (mandatory)
+        who has created the item.
+    """
+    # Set default permissions
+    __permissions__ = {
+        "read":   ("managers", ERQLExpression("X uploaded_by U"),),
+        "add":    ("managers", "users"),
+        "delete": ("managers",),
+        "update": ("managers",),
+    }
+
+    # Entity parameters
+    name = String(required=True, indexed=False)
+    value = String(required=True, indexed=False)
+
+    # The link to the owner of the data
+    uploaded_by = SubjectRelation(
+        "CWUser", cardinality="1*", composite="subject")
+
+
+class ExternalResource(EntityType):
+    """ An entity used to to store a file path.
+
+    Attributes
+    ----------
+    name: String (mandatory)
+        the parameter name.
+    filepath: String (mandatory)
+        the file path.
+    uploaded_by: SubjectRelation (mandatory)
+        who has created the item.
+    """
+    # Set default permissions
+    __permissions__ = {
+        "read":   ("managers", ERQLExpression("X uploaded_by U"),),
+        "add":    ("managers", "users"),
+        "delete": ("managers",),
+        "update": ("managers",),
+    }
+
+    # Entity parameters
+    name = String(required=True, indexed=False)
+    filepath = String(required=True, indexed=False)
+
+    # The link to the owner of the data
+    uploaded_by = SubjectRelation(
+        "CWUser", cardinality="1*", composite="subject")
+
+
 CWUpload.add_relation(
     SubjectRelation("CWProcessing", cardinality="1*", composite="subject"),
     name="related_processing")
+CWProcessing.add_relation(
+    SubjectRelation("ScoreValue", cardinality="**", composite="subject"),
+    name="results")
+CWProcessing.add_relation(
+    SubjectRelation("ExternalResource", cardinality="**", composite="subject"),
+    name="results")
