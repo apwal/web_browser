@@ -20,6 +20,10 @@ from cubes.rql_upload.views.primary import UploadFormPrimaryView
 from cubes.rql_upload.schema import CWUpload
 
 
+###############################################################################
+# UploadForm 
+###############################################################################
+
 class ResultFormPrimaryView(PrimaryView):
     """ Class that define how to display an UploadForm entity.
 
@@ -63,7 +67,7 @@ class ResultFormPrimaryView(PrimaryView):
                    self._cw._(label), attribute))
 
         # Link to the upload entity
-        self.w(u'<tr><td>{0}</td></tr>'.format(src_entity.view("outofcontext")))
+        self.w(u'<tr><td></td><td>{0}</td></tr>'.format(src_entity.view("outofcontext")))
 
         self.w(u'</table>')
 
@@ -71,14 +75,66 @@ class ResultFormPrimaryView(PrimaryView):
         """ Create the form primary view.
         """
         # Get the entity that contains the form
-        entity = self.cw_rset.get_entity(0,0)
+        entity = self.cw_rset.get_entity(0, 0)
 
         # Display the form
         self.display_form(entity)
+
+
+###############################################################################
+# CWUpload
+###############################################################################
+
+class CWProcessingPrimaryView(PrimaryView):
+    """ Class that define how to display a CWUpload entity.
+
+    The table display may be tuned by specifing the 'upload-table' class in
+    a css.
+    """
+    __select__ = PrimaryView.__select__ & is_instance("CWUpload")
+
+    def display_form(self, entity):
+        """ Generate the html code.
+        """
+        # Generate the html entity html table
+        entity_html = "<table style='width:90%'>"
+        for parameter_name in ["title", "form_name"]:
+            entity_html += "<tr><td><b>{0}</b></td><td>{1}</td>".format(
+                parameter_name, entity.__dict__["cw_attr_cache"][parameter_name])
+        entity_html += "<tr><td></td><td>{0}</td>".format(
+            entity.related_processing[0].view("outofcontext"))
+        entity_html += "</table>"
+
+        # Generate the html result html
+        result_form = entity.result_form[0]
+        result_form_image = u"<img alt='' src='{0}'>".format(result_form.icon_url())
+        result_html = "<div class='primaryRight'><div class='contextFreeBox rsetbox'>"
+        result_html += "<div class='boxTitle'><span>Submitted task</span></div>"
+        result_html += ("<div class='boxBody'>{0}<a href='{1}' title=''>parameters"
+                       "</a></div>".format(result_form_image, result_form.absolute_url()))
+
+        # Generate the html form html table
+        form_html = "<h1>Submitted task</h1>"
+        form_html += ("<table><tr><td style='width: 100%'>{0}</td><td>{1}</td>"
+                    "</tr></table>".format(entity_html, result_html))
+
+        # Display a title
+        self.w(unicode(form_html))
+
+    def call(self, rset=None):
+        """ Create the form primary view.
+        """
+        # Get the entity that contains the form
+        entity = self.cw_rset.get_entity(0, 0)
+       
+        # Display the form
+        self.display_form(entity)
+
         
 
 def registration_callback(vreg):
     """ Register the tuned primary views.
     """
     vreg.register_and_replace(ResultFormPrimaryView, UploadFormPrimaryView)
+    vreg.register(CWProcessingPrimaryView)
 
